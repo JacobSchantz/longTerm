@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Login Items</string>
+            <key>PayloadIdentifier</key>
+            <string>com.yourcompany.alwaysenabletextviewer.loginitems</string>
+            <key>PayloadType</key>
+            <string>com.apple.loginitems.managed</string>
+            <key>PayloadUUID</key>
+            <string>12345678-1234-1234-1234-1234567890AB</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>LoginItems</key>
+            <array>
+                <dict>
+                    <key>Path</key>
+                    <string>/Applications/longTerm.app</string>
+                    <key>Hide</key>
+                    <false/>
+                </dict>
+            </array>
+        </dict>
+    </array>
+    <key>PayloadDescription</key>
+    <string>Ensures PeriodicScreenTextViewerApp launches at login</string>
+    <key>PayloadDisplayName</key>
+    <string>Always Enable Text Viewer App</string>
+    <key>PayloadIdentifier</key>
+    <string>com.yourcompany.alwaysenabletextviewer</string>
+    <key>PayloadOrganization</key>
+    <string>Your Company</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>ABCDEFGHI-1234-1234-1234-1234567890AB</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>
