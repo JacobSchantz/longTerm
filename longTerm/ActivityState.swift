@@ -161,7 +161,9 @@ class AppState: ObservableObject {
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
-                        let isOnTask = response.lowercased().contains("on task")
+                        let responseLower = response.lowercased()
+                        let responseWithoutPunctuation = responseLower.trimmingCharacters(in: .punctuationCharacters)
+                        let isOnTask = responseWithoutPunctuation.hasSuffix("on task")
                         updateStatusItemIcon(isOnTask: isOnTask)
                     }
                 } catch {
