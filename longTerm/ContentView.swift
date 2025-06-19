@@ -80,9 +80,13 @@ struct ActivitySelectorView: View {
                     state.toggleCaptureOnPressed()
                 }
                 .padding()
-                Button("Check with AI") {
-                    state.checkWithAI()
+                Button("Ask ChatGPT") {
+                    state.checkWithChatGPT()
                 }
+                Button("Ask Grok") {
+                    state.checkWithGrok()
+                }
+                .padding(.leading, 10)
                 Button("New Activity") {
                     state.isCreatingNew = true
                     state.newActivityTitle = ""

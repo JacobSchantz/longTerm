@@ -115,11 +115,30 @@ class AppState: ObservableObject {
     }
 
     
-    func checkWithAI() {
-        if let selectedActivity = activities.first(where: { $0.id == selectedActivityId }) {
+    func checkWithChatGPT() {
+        if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             Task {
                 do {
-                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: selectedActivity.description)
+                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description, useGrok: false)
+                    await MainActor.run {
+                        self.aiResponse = response
+                        self.errorMessage = ""
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.aiResponse = ""
+                        self.errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+    
+    func checkWithGrok() {
+        if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
+            Task {
+                do {
+                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description, useGrok: true)
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
