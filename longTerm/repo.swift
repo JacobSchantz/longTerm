@@ -178,6 +178,32 @@ class Repo {
             throw error
         }
     }
+    
+    static func sendTextToLocalAI(_ text: String, activityDescription: String) async throws -> String {
+        // Path to the Python script for local AI inference
+        let scriptPath = "/Users/jakeschantz/Dropbox/Mac/Desktop/longTerm/longTerm/local_ai_inference.py"
+        let process = Process()
+        let pipe = Pipe()
+        
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = [scriptPath, text, activityDescription]
+        process.standardOutput = pipe
+        process.standardError = pipe
+        
+        try process.run()
+        process.waitUntilExit()
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        if let output = String(data: data, encoding: .utf8) {
+            if process.terminationStatus == 0 {
+                return output.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                throw NSError(domain: "", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Local AI script failed with error: \(output)"])
+            }
+        } else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode output from local AI script"])
+        }
+    }
 
 	 static func getAPIKey() throws -> String {
     let fm = FileManager.default

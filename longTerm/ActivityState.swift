@@ -157,7 +157,10 @@ class AppState: ObservableObject {
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             Task {
                 do {
-                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
+                    // Switch between local and external AI based on a configuration
+                    // For now, we'll default to external AI. Change to true for local AI.
+                    let useLocalAI = true
+                    let response = try await useLocalAI ? Repo.sendTextToLocalAI(detectedText, activityDescription: currentActivity.description) : Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
