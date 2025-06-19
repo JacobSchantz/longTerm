@@ -71,9 +71,13 @@ class AppState: ObservableObject {
         updateStatusItemIcon(isOnTask: false) // Default to off task
         
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Open App", action: #selector(openApp), keyEquivalent: ""))
+        let askAIItem = NSMenuItem(title: "Ask AI", action: #selector(checkWithAI), keyEquivalent: "")
+        askAIItem.target = self
+        menu.addItem(askAIItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Ask AI", action: #selector(checkWithAI), keyEquivalent: ""))
+        let openAppItem = NSMenuItem(title: "Open App", action: #selector(openApp), keyEquivalent: "")
+        openAppItem.target = self
+        menu.addItem(openAppItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem?.menu = menu
