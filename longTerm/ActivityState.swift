@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import ScreenCaptureKit
 import Vision
+import AppKit
 
 struct Activity: Identifiable, Codable, Hashable {
     var id: String
@@ -31,7 +32,8 @@ class AppState: ObservableObject {
     @Published var isCapturing: Bool = false
     
     private var timer: Timer?
-
+    private var statusItem: NSStatusItem?
+    
     @Published var activities: [Activity] = []
     @Published var selectedActivityId: String?
     @Published var isEditing: Bool = false
@@ -60,6 +62,38 @@ class AppState: ObservableObject {
             activities = defaultActivities
         }
         selectedActivityId = activities.first?.id
+        setupStatusItem()
+    }
+    
+    func setupStatusItem() {
+        let statusBar = NSStatusBar.system
+        statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
+        updateStatusItemIcon(isOnTask: false) // Default to off task
+        
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Open App", action: #selector(openApp), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Ask AI", action: #selector(checkWithAI), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        statusItem?.menu = menu
+    }
+    
+    @objc func openApp() {
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    func updateStatusItemIcon(isOnTask: Bool) {
+        if let button = statusItem?.button {
+            let iconName = isOnTask ? "checkmark.circle.fill" : "xmark.circle.fill"
+            if let image = NSImage(systemSymbolName: iconName, accessibilityDescription: isOnTask ? "On Task" : "Off Task") {
+                image.isTemplate = true
+                button.image = image
+                button.imageScaling = .scaleProportionallyDown
+            } else {
+                button.title = isOnTask ? "On Task" : "Off Task"
+            }
+        }
     }
     
     func checkPermissionOnAppear() {
@@ -115,33 +149,16 @@ class AppState: ObservableObject {
     }
 
     
-    func checkWithChatGPT() {
+    @objc func checkWithAI() {
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             Task {
                 do {
-                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description, useGrok: false)
+                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
-                    }
-                } catch {
-                    await MainActor.run {
-                        self.aiResponse = ""
-                        self.errorMessage = error.localizedDescription
-                    }
-                }
-            }
-        }
-    }
-    
-    func checkWithGrok() {
-        if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
-            Task {
-                do {
-                    let response = try await Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description, useGrok: true)
-                    await MainActor.run {
-                        self.aiResponse = response
-                        self.errorMessage = ""
+                        let isOnTask = response.lowercased().contains("on task")
+                        updateStatusItemIcon(isOnTask: isOnTask)
                     }
                 } catch {
                     await MainActor.run {
@@ -182,5 +199,9 @@ class AppState: ObservableObject {
             selectedActivityId = activities.first?.id
         }
         saveActivities()
+    }
+    
+    private func getSelectedActivity() -> Activity? {
+        return activities.first(where: { $0.id == selectedActivityId })
     }
 }

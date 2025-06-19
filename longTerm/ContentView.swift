@@ -66,6 +66,7 @@ struct ContentView: View {
         .frame(minWidth: 400, minHeight: 300)
         .onAppear {
             state.checkPermissionOnAppear()
+            // state.setupStatusItem()
         }
     }
 }
@@ -81,11 +82,11 @@ struct ActivitySelectorView: View {
                 }
                 .padding()
                 Button("Ask ChatGPT") {
-                    state.checkWithChatGPT()
+                    state.checkWithAI()
                 }
-                Button("Ask Grok") {
-                    state.checkWithGrok()
-                }
+                // Button("Ask Grok") {
+                //     state.checkWithGrok()
+                // }
                 .padding(.leading, 10)
                 Button("New Activity") {
                     state.isCreatingNew = true
