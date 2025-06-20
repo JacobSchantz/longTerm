@@ -30,20 +30,6 @@ struct ContentView: View {
     var body: some View {
         VStack {
             ActivitySelectorView()
-            if !state.lastApiUrl.isEmpty {
-                VStack(alignment: .leading) {
-                    Text("Full API Request URL:")
-                        .font(.caption)
-                    Text(state.lastApiUrl)
-                        .font(.caption)
-                        .textSelection(.enabled)
-                        .foregroundColor(.blue)
-                        .padding(4)
-                        .background(.green)
-                        .cornerRadius(4)
-                }
-                .padding(.top)
-            }
             Text(state.statusMessage)
                 .foregroundColor(state.isCapturing ? .green : .red)
             if !state.apiUrl.isEmpty {
@@ -125,7 +111,6 @@ struct ActivitySelectorView: View {
             }
             .padding(.horizontal)
         }
-        .background(.gray)
         .cornerRadius(10)
     }
 }

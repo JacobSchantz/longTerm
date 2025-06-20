@@ -179,7 +179,7 @@ class Repo {
         }
     }
     
-    static func sendTextToLocalAI(_ text: String, activityDescription: String) async throws -> String {
+    static func sendTextToLocalAI(_ text: String, activity: Activity) async throws -> String {
         // Use Ollama API running on localhost
         let apiUrl = "http://localhost:11434/api/generate"
         let urlSession = URLSession.shared
@@ -190,7 +190,8 @@ class Repo {
         
         Screen text: \(text)
         
-        Intended task: \(activityDescription)
+        Intended task title: \(activity.title)
+        Intended task description: \(activity.description)
         
         Please analyze the following screen text and respond with:
         1. The task the user is supposed to be working on.
