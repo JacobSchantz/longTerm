@@ -195,8 +195,7 @@ class Repo {
         Please analyze the following screen text and respond with:
         1. The task the user is supposed to be working on.
         2. Your guess as to what the user is working on, based on the screen content
-        3. Based on the first two answers, determine if the user is working on their intended task. 
-        respond with a percentage of how on task the user is.
+        3. Based on the first two answers, give me a percentage of how similar the two are.
         """
         
         // Create the request body
