@@ -5,7 +5,7 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-
+import CoreML
 
 class Repo {
 
@@ -180,29 +180,59 @@ class Repo {
     }
     
     static func sendTextToLocalAI(_ text: String, activityDescription: String) async throws -> String {
-        // Path to the Python script for local AI inference
-        let scriptPath = "/Users/jakeschantz/Dropbox/Mac/Desktop/longTerm/longTerm/local_ai_inference.py"
-        let process = Process()
-        let pipe = Pipe()
+        // Use Ollama API running on localhost
+        let apiUrl = "http://localhost:11434/api/generate"
+        let urlSession = URLSession.shared
         
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        process.arguments = [scriptPath, text, activityDescription]
-        process.standardOutput = pipe
-        process.standardError = pipe
+        // Format the prompt for the model
+        let prompt = """
+        You are helping a friend stay on task. Analyze the screen text and determine if they are working on their intended task.
         
-        try process.run()
-        process.waitUntilExit()
+        Screen text: \(text)
         
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        if let output = String(data: data, encoding: .utf8) {
-            if process.terminationStatus == 0 {
-                return output.trimmingCharacters(in: .whitespacesAndNewlines)
-            } else {
-                throw NSError(domain: "", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Local AI script failed with error: \(output)"])
-            }
-        } else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode output from local AI script"])
+        Intended task: \(activityDescription)
+        
+        Please analyze the following screen text and respond with:
+        1. The task the user is supposed to be working on.
+        2. Your guess as to what the user is working on, based on the screen content
+        3. Based on the first two answers, determine if the user is working on their intended task. 
+        respond with a percentage of how on task the user is.
+        """
+        
+        // Create the request body
+        let requestBody: [String: Any] = [
+            "model": "llama3.2:latest", // Updated to use your 1B model
+            "prompt": prompt,
+            "stream": false,
+            "temperature": 0.2
+        ]
+        
+        // Convert the request body to JSON data
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to serialize request body"])
         }
+        
+        // Create the URL request
+        var request = URLRequest(url: URL(string: apiUrl)!)
+        request.httpMethod = "POST"
+        request.httpBody = jsonData
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Send the request and get the response
+        let (data, response) = try await urlSession.data(for: request)
+        
+        // Check the HTTP status code
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get a valid response from Ollama"])
+        }
+        
+        // Parse the response
+        guard let jsonResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let responseText = jsonResponse["response"] as? String else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response from Ollama"])
+        }
+
+        return responseText
     }
 
 	 static func getAPIKey() throws -> String {
