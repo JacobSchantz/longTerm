@@ -123,7 +123,7 @@ class Repo {
             "model": "gpt-4-turbo",
             "messages": messages,
             "stream": false,
-            "temperature": 0.7
+            "temperature": 0.1
         ]
         let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
         request.httpBody = jsonData
@@ -204,7 +204,7 @@ class Repo {
             "model": "llama3.2:latest", // Updated to use your 1B model
             "prompt": prompt,
             "stream": false,
-            "temperature": 0.2
+            "temperature": 0.1
         ]
         
         // Convert the request body to JSON data
