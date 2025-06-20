@@ -29,7 +29,17 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
-            // Display the on-task percentage with large text at the top
+            // Activity selector at the top
+            List {
+                ForEach(state.activities) { activity in
+                    ActivityTileView(activity: activity, isSelected: state.selectedActivityId == activity.id)
+                        .environmentObject(state)
+                }
+            }
+            .frame(height: 120)
+            .padding(.horizontal, 8)
+            
+            // Display the on-task percentage with large text
             VStack(spacing: 0) {
                 Text("On-Task")
                     .font(.headline)
@@ -44,8 +54,6 @@ struct ContentView: View {
             .background(state.onTaskPercentage >= 70 ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
             .cornerRadius(8)
             .padding(.horizontal, 8)
-            
-            ActivitySelectorView()
             Text(state.statusMessage)
                 .foregroundColor(state.isCapturing ? .green : .red)
                 .textSelection(.enabled)
@@ -104,38 +112,33 @@ struct ContentView: View {
             .frame(height: 150)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-        }
-        .frame(minWidth: 400, minHeight: 300)
-        .onAppear {
-            state.checkPermissionOnAppear()
-            state.setupStatusItem()
-        }
-    }
-}
-
-struct ActivitySelectorView: View {
-    @EnvironmentObject var state: AppState
-    
-    var body: some View {
-        VStack {
+            
+            // Control buttons at the bottom
             HStack {
                 Button(state.isCapturing ? "Stop Capture" : "Start Capture") {
                     state.toggleCaptureOnPressed()
                 }
-                .padding()
-                Button("Ask ChatGPT") {
+                .padding(.horizontal, 8)
+                
+                Button("Ask AI") {
                     state.checkWithAI()
                 }
-                .padding(.leading, 10)
-                Button("New Activity") {
+                .padding(.horizontal, 8)
+                
+                Spacer()
+                
+                // Add Activity button at the bottom right
+                Button("Add Activity") {
                     state.isCreatingNew = true
                     state.newActivityTitle = ""
                     state.newActivityDesc = ""
                 }
-                .padding(.leading, 10)
+                .padding(.horizontal, 8)
             }
-            .padding(.top, 10)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
             
+            // New activity form
             if state.isCreatingNew {
                 VStack {
                     TextField("New Activity Title", text: $state.newActivityTitle)
@@ -157,19 +160,21 @@ struct ActivitySelectorView: View {
                     .padding(.bottom, 10)
                 }
                 .padding(.horizontal)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             }
-            
-            List {
-                ForEach(state.activities) { activity in
-                    ActivityTileView(activity: activity, isSelected: state.selectedActivityId == activity.id)
-                        .environmentObject(state)
-                }
-            }
-            .padding(.horizontal)
         }
-        .cornerRadius(10)
+        .frame(minWidth: 400, minHeight: 300)
+        .onAppear {
+            state.checkPermissionOnAppear()
+            state.setupStatusItem()
+        }
     }
 }
+
+// ActivitySelectorView has been integrated directly into ContentView
 
 struct ActivityTileView: View {
     let activity: Activity
