@@ -28,8 +28,10 @@ class AppState: ObservableObject {
     @Published var errorMessage: String = ""
     @Published var lastApiUrl: String = ""
     @Published var detectedText: String = "No text detected yet."
+    @Published var useLocalAI: Bool = true // Default to using local AI (Ollama)
     @Published var statusMessage: String = "Not capturing"
     @Published var isCapturing: Bool = false
+    @Published var isCheckingWithAI: Bool = false // Indicator for when AI check is in progress
     @Published var onTaskPercentage: Int = 0
     
     private var timer: Timer?
@@ -72,7 +74,7 @@ class AppState: ObservableObject {
         let isOnTask = onTaskPercentage >= 70
         
         if let button = statusItem?.button {
-            // Create a text-based icon with the percentage
+            // Always show the percentage in the menu bar
             let percentageText = String(format: "%.0f%%", onTaskPercentage)
             
             // Create an attributed string with color based on on-task status
@@ -93,7 +95,19 @@ class AppState: ObservableObject {
         
         let menu = NSMenu()
 
-         let checkWithAIItem = NSMenuItem(title: "On task: \(onTaskPercentage)%", action: #selector(checkWithAI), keyEquivalent: "")
+        // First menu item shows status (checking or on-task percentage)
+        if isCheckingWithAI {
+            let checkingItem = NSMenuItem(title: "Checking with AI...", action: nil, keyEquivalent: "")
+            checkingItem.isEnabled = false
+            menu.addItem(checkingItem)
+        } else {
+            let statusItem = NSMenuItem(title: "On task: \(onTaskPercentage)%", action: nil, keyEquivalent: "")
+            statusItem.isEnabled = false
+            menu.addItem(statusItem)
+        }
+        
+        // Add AI check action
+        let checkWithAIItem = NSMenuItem(title: "Check with AI", action: #selector(checkWithAI), keyEquivalent: "")
         checkWithAIItem.target = self
         menu.addItem(checkWithAIItem)
 
@@ -153,8 +167,15 @@ class AppState: ObservableObject {
         Task {
             let text = await Repo().recognizeTextFromScreen()
             DispatchQueue.main.async { [weak self] in
-                self?.detectedText = text
-                self?.statusMessage = "Last capture: \(Date().formatted(date: .omitted, time: .standard))"
+                guard let self = self else { return }
+                
+                self.detectedText = text
+                self.statusMessage = "Last capture: \(Date().formatted(date: .omitted, time: .standard))"
+                
+                // Automatically run checkWithAI if useLocalAI is true
+                if self.useLocalAI {
+                    self.checkWithAI()
+                }
             }
         }
     }
@@ -181,6 +202,13 @@ class AppState: ObservableObject {
     }
     
     @objc func checkWithAI() {
+        if isCheckingWithAI {
+            return
+        }
+        
+        self.isCheckingWithAI = true
+
+        
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             // If the activity is the default "Off the Rails" (id = "default"), always return 100%
             if currentActivity.id == "default" {
@@ -191,12 +219,15 @@ class AppState: ObservableObject {
                 return
             }
             
+            // Update the menu bar to show checking indicator
+            updateMenuBar(onTaskPercentage: Double(self.onTaskPercentage))
+            
             Task {
                 do {
-                    // Switch between local and external AI based on a configuration
-                    // For now, we'll default to local AI (Ollama)
-                    let useLocalAI = true;
-                    let response = try await useLocalAI ? Repo.sendTextToLocalAI(detectedText, activity: currentActivity) : Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
+                    // Use the class property to determine whether to use local or external AI
+                                self.isCheckingWithAI = true
+
+                    let response = try await self.useLocalAI ? Repo.sendTextToLocalAI(detectedText, activity: currentActivity) : Repo.sendTextToOnlineAI(detectedText, activityDescription: currentActivity.description)
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
@@ -206,14 +237,21 @@ class AppState: ObservableObject {
                         self.onTaskPercentage = percentage
                         
                         updateMenuBar(onTaskPercentage: Double(percentage))
+                        
+                        // Set the checking indicator back to false after completing the AI check
+                        self.isCheckingWithAI = false
                     }
                 } catch {
                     await MainActor.run {
                         self.aiResponse = ""
                         self.errorMessage = error.localizedDescription
+                        
+                        // Set the checking indicator back to false if there's an error
+                        self.isCheckingWithAI = false
                     }
                 }
             }
+            self.isCheckingWithAI = false
         }
     }
     

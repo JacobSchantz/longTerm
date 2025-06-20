@@ -41,13 +41,25 @@ struct ContentView: View {
             
             // Display the on-task percentage with large text
             VStack(spacing: 0) {
-                Text("On-Task")
-                    .font(.headline)
-                    .textSelection(.enabled)
+                HStack {
+                    Text("On-Task")
+                        .font(.headline)
+                        .textSelection(.enabled)
+                    
+                    // AI checking indicator
+                    if state.isCheckingWithAI {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(0.7)
+                            .padding(.leading, 4)
+                    }
+                }
+                
                 Text("\(state.onTaskPercentage)%")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
                     .textSelection(.enabled)
+                    .opacity(state.isCheckingWithAI ? 0.5 : 1.0) // Dim the percentage when checking
             }
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity)

@@ -84,7 +84,7 @@ class Repo {
         return []
     }
 
-	static func sendTextToAI(_ text: String, activityDescription: String) async throws -> String {
+	static func sendTextToOnlineAI(_ text: String, activityDescription: String) async throws -> String {
         let apiUrl = "https://api.openai.com/v1/chat/completions"
         let apiKey = try getAPIKey()
         let urlSession = URLSession.shared
@@ -204,7 +204,7 @@ class Repo {
             "model": "llama3.2:latest", // Updated to use your 1B model
             "prompt": prompt,
             "stream": false,
-            "temperature": 0.1
+            "temperature": 0.01
         ]
         
         // Convert the request body to JSON data
