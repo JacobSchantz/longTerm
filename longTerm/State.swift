@@ -30,6 +30,7 @@ class AppState: ObservableObject {
     @Published var detectedText: String = "No text detected yet."
     @Published var statusMessage: String = "Not capturing"
     @Published var isCapturing: Bool = false
+    @Published var onTaskPercentage: Int = 0
     
     private var timer: Timer?
     private var statusItem: NSStatusItem?
@@ -153,20 +154,44 @@ class AppState: ObservableObject {
     }
 
     
+    func extractPercentageFromResponse(_ response: String) -> Int {
+        // Regular expression to find percentage patterns like "85%" or "85 percent" or "similarity is 85"
+        let percentageRegex = try? NSRegularExpression(pattern: "(\\d+)\\s*%|\\b(\\d+)\\s*percent\\b|similarity\\s*(is|of)\\s*(\\d+)|\\b(\\d+)\\s*similarity", options: [.caseInsensitive])
+        
+        if let matches = percentageRegex?.matches(in: response, options: [], range: NSRange(response.startIndex..., in: response)), let match = matches.first {
+            // Check each capture group for a valid number
+            for i in 1..<match.numberOfRanges {
+                if let range = Range(match.range(at: i), in: response), !range.isEmpty {
+                    let captured = String(response[range])
+                    if let percentage = Int(captured), percentage >= 0 && percentage <= 100 {
+                        return percentage
+                    }
+                }
+            }
+        }
+        
+        // If no percentage is found, default to 0
+        return 0
+    }
+    
     @objc func checkWithAI() {
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             Task {
                 do {
                     // Switch between local and external AI based on a configuration
-                    // For now, we'll default to external AI. Change to true for local AI.
+                    // For now, we'll default to local AI (Ollama)
                     let useLocalAI = true;
-                    let response = try await useLocalAI ? Repo.sendTextToLocalAI(detectedText, activityDescription: currentActivity.description) : Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
+                    let response = try await useLocalAI ? Repo.sendTextToLocalAI(detectedText, activity: currentActivity) : Repo.sendTextToAI(detectedText, activityDescription: currentActivity.description)
                     await MainActor.run {
                         self.aiResponse = response
                         self.errorMessage = ""
-                        let responseLower = response.lowercased()
-                        let responseWithoutPunctuation = responseLower.trimmingCharacters(in: .punctuationCharacters)
-                        let isOnTask = responseWithoutPunctuation.hasSuffix("on task")
+                        
+                        // Extract percentage from the response
+                        let percentage = extractPercentageFromResponse(response)
+                        self.onTaskPercentage = percentage
+                        
+                        // Determine if on task based on percentage threshold (70%)
+                        let isOnTask = percentage >= 70
                         updateStatusItemIcon(isOnTask: isOnTask)
                     }
                 } catch {

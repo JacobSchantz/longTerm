@@ -29,13 +29,32 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
+            // Display the on-task percentage with large text at the top
+            VStack(spacing: 0) {
+                Text("On-Task")
+                    .font(.headline)
+                    .textSelection(.enabled)
+                Text("\(state.onTaskPercentage)%")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
+                    .textSelection(.enabled)
+            }
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity)
+            .background(state.onTaskPercentage >= 70 ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+            .cornerRadius(8)
+            .padding(.horizontal, 8)
+            
             ActivitySelectorView()
             Text(state.statusMessage)
                 .foregroundColor(state.isCapturing ? .green : .red)
+                .textSelection(.enabled)
+            
             if !state.apiUrl.isEmpty {
                 Text("API Request URL: \(state.apiUrl)")
                     .font(.caption)
                     .padding()
+                    .textSelection(.enabled)
             }
             if !state.errorMessage.isEmpty {
                 Text("Error: \(state.errorMessage)")
@@ -43,11 +62,48 @@ struct ContentView: View {
                     .padding()
                     .textSelection(.enabled) // Makes error message copyable
             }
-            Text("Recognized Text: \(state.detectedText)")
-                .padding()
-                .textSelection(.enabled) // Makes recognized text copyable
-            Text("AI Response: \(state.aiResponse)")
-                .padding()
+            
+            // Side-by-side scrollable views for captured text and AI response
+            HStack(spacing: 4) {
+                // Left side: Captured text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Recognized Text:")
+                        .font(.caption)
+                        .padding(.bottom, 2)
+                    
+                    ScrollView {
+                        Text(state.detectedText)
+                            .textSelection(.enabled) // Makes text copyable
+                            .font(.system(size: 12))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(4)
+                    }
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(4)
+                }
+                .frame(maxWidth: .infinity)
+                
+                // Right side: AI response
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI Response:")
+                        .font(.caption)
+                        .padding(.bottom, 2)
+                    
+                    ScrollView {
+                        Text(state.aiResponse)
+                            .textSelection(.enabled) // Makes text copyable
+                            .font(.system(size: 12))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(4)
+                    }
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(4)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .frame(height: 150)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
         }
         .frame(minWidth: 400, minHeight: 300)
         .onAppear {
