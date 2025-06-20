@@ -70,15 +70,25 @@ class AppState: ObservableObject {
         let statusBar = NSStatusBar.system
         statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
         let isOnTask = onTaskPercentage >= 70
+        
         if let button = statusItem?.button {
-            let iconName = isOnTask ? "checkmark.circle.fill" : "xmark.circle.fill"
-            if let image = NSImage(systemSymbolName: iconName, accessibilityDescription: isOnTask ? "On Task" : "Off Task") {
-                image.isTemplate = true
-                button.image = image
-                button.imageScaling = .scaleProportionallyDown
-            } else {
-                button.title = isOnTask ? "On Task" : "Off Task"
-            }
+            // Create a text-based icon with the percentage
+            let percentageText = String(format: "%.0f%%", onTaskPercentage)
+            
+            // Create an attributed string with color based on on-task status
+            let textColor = isOnTask ? NSColor.systemGreen : NSColor.systemRed
+            let font = NSFont.systemFont(ofSize: 12, weight: .bold)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: textColor,
+                .font: font
+            ]
+            let attributedString = NSAttributedString(string: percentageText, attributes: attributes)
+            
+            // Set the title with the attributed string
+            button.attributedTitle = attributedString
+            
+            // Remove any existing image
+            button.image = nil
         }
         
         let menu = NSMenu()
@@ -172,6 +182,15 @@ class AppState: ObservableObject {
     
     @objc func checkWithAI() {
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
+            // If the activity is the default "Off the Rails" (id = "default"), always return 100%
+            if currentActivity.id == "default" {
+                self.aiResponse = "You're on the default activity 'Off the Rails', so you're always 100% on task."
+                self.errorMessage = ""
+                self.onTaskPercentage = 100
+                updateMenuBar(onTaskPercentage: 100.0)
+                return
+            }
+            
             Task {
                 do {
                     // Switch between local and external AI based on a configuration
@@ -186,9 +205,6 @@ class AppState: ObservableObject {
                         let percentage = extractPercentageFromResponse(response)
                         self.onTaskPercentage = percentage
                         
-                        // Determine if on task based on percentage threshold (70%)
-                        
-                        let isOnTask = percentage >= 70
                         updateMenuBar(onTaskPercentage: Double(percentage))
                     }
                 } catch {
