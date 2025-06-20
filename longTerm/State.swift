@@ -63,32 +63,13 @@ class AppState: ObservableObject {
             activities = defaultActivities
         }
         selectedActivityId = activities.first?.id
-        setupStatusItem()
+        updateMenuBar(onTaskPercentage: 0.0)
     }
     
-    func setupStatusItem() {
+    func updateMenuBar(onTaskPercentage: Double) {
         let statusBar = NSStatusBar.system
         statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
-        updateStatusItemIcon(isOnTask: false) // Default to off task
-        
-        let menu = NSMenu()
-        let askAIItem = NSMenuItem(title: "Ask AI", action: #selector(checkWithAI), keyEquivalent: "")
-        askAIItem.target = self
-        menu.addItem(askAIItem)
-        menu.addItem(NSMenuItem.separator())
-        let openAppItem = NSMenuItem(title: "Open App", action: #selector(openApp), keyEquivalent: "")
-        openAppItem.target = self
-        menu.addItem(openAppItem)
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        statusItem?.menu = menu
-    }
-    
-    @objc func openApp() {
-        NSApp.activate(ignoringOtherApps: true)
-    }
-    
-    func updateStatusItemIcon(isOnTask: Bool) {
+        let isOnTask = onTaskPercentage >= 70
         if let button = statusItem?.button {
             let iconName = isOnTask ? "checkmark.circle.fill" : "xmark.circle.fill"
             if let image = NSImage(systemSymbolName: iconName, accessibilityDescription: isOnTask ? "On Task" : "Off Task") {
@@ -99,7 +80,22 @@ class AppState: ObservableObject {
                 button.title = isOnTask ? "On Task" : "Off Task"
             }
         }
+        
+        let menu = NSMenu()
+
+         let checkWithAIItem = NSMenuItem(title: "On task: \(onTaskPercentage)%", action: #selector(checkWithAI), keyEquivalent: "")
+        checkWithAIItem.target = self
+        menu.addItem(checkWithAIItem)
+
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        statusItem?.menu = menu
     }
+    
+    @objc func openApp() {
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
     
     func checkPermissionOnAppear() {
         Task {
@@ -191,8 +187,9 @@ class AppState: ObservableObject {
                         self.onTaskPercentage = percentage
                         
                         // Determine if on task based on percentage threshold (70%)
+                        
                         let isOnTask = percentage >= 70
-                        updateStatusItemIcon(isOnTask: isOnTask)
+                        updateMenuBar(onTaskPercentage: Double(percentage))
                     }
                 } catch {
                     await MainActor.run {

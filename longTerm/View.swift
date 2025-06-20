@@ -169,7 +169,7 @@ struct ContentView: View {
         .frame(minWidth: 400, minHeight: 300)
         .onAppear {
             state.checkPermissionOnAppear()
-            state.setupStatusItem()
+            state.updateMenuBar(onTaskPercentage: 0.0)
         }
     }
 }
