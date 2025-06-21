@@ -166,7 +166,9 @@ class AppState: ObservableObject {
     private func captureAndRecognizeText() {
         Task {
             let text = await Repo().recognizeTextFromScreen()
-            DispatchQueue.main.async { [weak self] in
+            
+            // Ensure all UI updates happen on the main thread
+            await MainActor.run { [weak self] in
                 guard let self = self else { return }
                 
                 self.detectedText = text
@@ -174,6 +176,7 @@ class AppState: ObservableObject {
                 
                 // Automatically run checkWithAI if useLocalAI is true
                 if self.useLocalAI {
+                    // checkWithAI already has main thread check
                     self.checkWithAI()
                 }
             }
@@ -202,12 +205,24 @@ class AppState: ObservableObject {
     }
     
     @objc func checkWithAI() {
+        // Ensure we're on the main thread for all UI updates
+        if !Thread.isMainThread {
+            DispatchQueue.main.async {
+                self.checkWithAI()
+            }
+            return
+        }
+        
+        // Prevent multiple simultaneous checks
         if isCheckingWithAI {
             return
         }
         
+        // Set checking state on the main thread
         self.isCheckingWithAI = true
-
+        
+        // Update the menu bar to show checking indicator
+        updateMenuBar(onTaskPercentage: Double(self.onTaskPercentage))
         
         if let currentActivity = activities.first(where: { $0.id == selectedActivityId }) {
             // If the activity is the default "Off the Rails" (id = "default"), always return 100%
@@ -216,17 +231,13 @@ class AppState: ObservableObject {
                 self.errorMessage = ""
                 self.onTaskPercentage = 100
                 updateMenuBar(onTaskPercentage: 100.0)
+                self.isCheckingWithAI = false
                 return
             }
-            
-            // Update the menu bar to show checking indicator
-            updateMenuBar(onTaskPercentage: Double(self.onTaskPercentage))
             
             Task {
                 do {
                     // Use the class property to determine whether to use local or external AI
-                                self.isCheckingWithAI = true
-
                     let response = try await self.useLocalAI ? Repo.sendTextToLocalAI(detectedText, activity: currentActivity) : Repo.sendTextToOnlineAI(detectedText, activityDescription: currentActivity.description)
                     await MainActor.run {
                         self.aiResponse = response
