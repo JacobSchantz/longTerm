@@ -146,7 +146,7 @@ class AppState: ObservableObject {
     
     func startCapture() {
         guard !isCapturing else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
             self?.captureAndRecognizeText()
         }
         captureAndRecognizeText()

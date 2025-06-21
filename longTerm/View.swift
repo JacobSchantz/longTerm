@@ -29,14 +29,21 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
-            // Activity selector at the top
-            List {
-                ForEach(state.activities) { activity in
-                    ActivityTileView(activity: activity, isSelected: state.selectedActivityId == activity.id)
-                        .environmentObject(state)
+            // Horizontal activity selector at the top
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
+                    ForEach(state.activities) { activity in
+                        ActivityTileView(activity: activity, isSelected: state.selectedActivityId == activity.id)
+                            .environmentObject(state)
+                            .frame(width: 250)
+                            .scaleEffect(state.selectedActivityId == activity.id ? 1.05 : 0.95)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: state.selectedActivityId)
+                    }
                 }
+                .padding(.horizontal, 15)
+                .padding(.vertical, 10)
             }
-            .frame(height: 120)
+            .frame(height: 150)
             .padding(.horizontal, 8)
             
             // Display the on-task percentage with large text
@@ -192,63 +199,115 @@ struct ActivityTileView: View {
     let activity: Activity
     let isSelected: Bool
     @EnvironmentObject var state: AppState
+    @State private var isEditing: Bool = false
 
     var body: some View {
-        HStack(alignment: .center) {
-            if isSelected {
-                VStack(alignment: .leading) {
-                    TextField("Title", text: Binding(
-                        get: { activity.title },
-                        set: { newTitle in
-                            if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
-                                state.activities[index].title = newTitle
-                                state.saveActivities()
-                            }
+        VStack(alignment: .leading, spacing: 8) {
+            // Activity title
+            if isSelected && isEditing {
+                TextField("Title", text: Binding(
+                    get: { activity.title },
+                    set: { newTitle in
+                        if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
+                            state.activities[index].title = newTitle
+                            state.saveActivities()
                         }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(height: 30)
-                    TextField("Description", text: Binding(
-                        get: { activity.description },
-                        set: { newDesc in
-                            if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
-                                state.activities[index].description = newDesc
-                                state.saveActivities()
-                            }
-                        }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(height: 30)
-                }
+                    }
+                ))
+                .font(.headline)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal, 4)
             } else {
-                VStack(alignment: .leading) {
-                    Text(activity.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(activity.description)
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                }
+                Text(activity.title)
+                    .font(.headline)
+                    .foregroundColor(isSelected ? .primary : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 8)
+                    .lineLimit(1)
             }
+            
+            // Activity description
+            if isSelected && isEditing {
+                TextField("Description", text: Binding(
+                    get: { activity.description },
+                    set: { newDesc in
+                        if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
+                            state.activities[index].description = newDesc
+                            state.saveActivities()
+                        }
+                    }
+                ))
+                .font(.subheadline)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal, 4)
+            } else {
+                Text(activity.description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 8)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
             Spacer()
-            Toggle("", isOn: Binding(
-                get: { state.selectedActivityId == activity.id },
-                set: { isOn in
-                    if isOn {
-                        state.selectedActivityId = activity.id
+            
+            // Controls at the bottom
+            HStack {
+                Button(action: {
+                    state.selectedActivityId = activity.id
+                }) {
+                    Text(isSelected ? "Selected" : "Select")
+                        .font(.caption)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(isSelected ? Color.blue : Color.gray.opacity(0.3))
+                        .foregroundColor(isSelected ? .white : .primary)
+                        .cornerRadius(4)
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Button(action: {
+                        isEditing.toggle()
+                    }) {
+                        Text(isEditing ? "Done" : "Edit")
+                            .font(.caption)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.orange.opacity(0.8))
+                            .foregroundColor(.white)
+                            .cornerRadius(4)
                     }
                 }
-            ))
-            .labelsHidden()
-            .padding(.trailing, 5)
-            Button("Delete") {
-                state.deleteActivity(activity.id)
+                
+                if activity.title != "Off the Rails" {
+                    Button(action: {
+                        state.deleteActivity(activity.id)
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.red.opacity(0.8))
+                            .foregroundColor(.white)
+                            .cornerRadius(4)
+                    }
+                }
             }
-            .disabled(activity.title == "Off the Rails")
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
         }
-        .padding(.vertical, 5)
-        .padding(.horizontal, 10)
-        .background(isSelected ? Color.blue.opacity(0.2) : Color.clear)
-        .cornerRadius(8)
+        .frame(maxWidth: .infinity)
+        .background(isSelected ? Color.blue.opacity(0.1) : Color.gray.opacity(0.05))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isSelected ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            state.selectedActivityId = activity.id
+        }
     }
 }
