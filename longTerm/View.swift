@@ -10,11 +10,16 @@ import FoundationNetworking
 
 @main
 struct MainView: App {
+    @StateObject private var appState = AppState()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(AppState())
+                .environmentObject(appState)
         }
+        
+        // Add an empty WindowGroup for the overlay
+        WindowGroup(id: "overlay") { EmptyView() }
     }
 }
 
@@ -26,7 +31,7 @@ struct ContentView_Previews: PreviewProvider {
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
-
+    
     var body: some View {
         VStack {
             // Horizontal activity selector at the top
@@ -73,6 +78,7 @@ struct ContentView: View {
             .background(state.onTaskPercentage >= 70 ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
             .cornerRadius(8)
             .padding(.horizontal, 8)
+
             Text(state.statusMessage)
                 .foregroundColor(state.isCapturing ? .green : .red)
                 .textSelection(.enabled)
@@ -144,51 +150,88 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 8)
                 
+                Button(action: {
+                    state.showInfoPopup = true
+                }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 18))
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 4)
+                
                 Spacer()
                 
                 // Add Activity button at the bottom right
                 Button("Add Activity") {
-                    state.isCreatingNew = true
-                    state.newActivityTitle = ""
-                    state.newActivityDesc = ""
+                    state.addActivity()
                 }
                 .padding(.horizontal, 8)
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
             
-            // New activity form
-            if state.isCreatingNew {
-                VStack {
-                    TextField("New Activity Title", text: $state.newActivityTitle)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                    TextField("New Activity Description", text: $state.newActivityDesc)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                    HStack {
-                        Button("Cancel") {
-                            state.isCreatingNew = false
-                        }
-                        .padding(.leading, 10)
-                        Button("Create") {
-                            state.createActivity()
-                        }
-                        .padding(.leading, 10)
-                    }
-                    .padding(.bottom, 10)
-                }
-                .padding(.horizontal)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
-            }
         }
         .frame(minWidth: 400, minHeight: 300)
-        .onAppear {
-            state.checkPermissionOnAppear()
-            state.updateMenuBar(onTaskPercentage: 0.0)
+        .background(
+            // Invisible view to handle overlay window
+            OverlayWindowView(isVisible: $state.isOverlayVisible, contentView: AnyView(OverlayContentView().environmentObject(state)), size: CGSize(width: 180, height: 80))
+        )
+        .alert("Off Task Alert", isPresented: $state.showZeroPercentAlert) {
+            Button("OK") {
+                state.showZeroPercentAlert = false
+            }
+        } message: {
+            Text("You are completely off task! The AI detected 0% similarity to your selected activity.")
+        }
+        .sheet(isPresented: $state.showInfoPopup) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Activity Information")
+                    .font(.title)
+                    .bold()
+                    .padding(.bottom, 8)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    if let activity = state.selectedActivity {
+                        Text("Current Activity: \(activity.title)")
+                            .font(.headline)
+                        
+                        Text("Description: \(activity.description)")
+                            .font(.body)
+                        
+                        Text("On-Task Percentage: \(state.onTaskPercentage)%")
+                            .font(.body)
+                            .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
+                        
+                        Text("AI Source: \(state.useLocalAI ? "Local Ollama" : "External API")")
+                            .font(.body)
+                        
+                        Text("Status: \(state.isCapturing ? "Capturing" : "Not Capturing")")
+                            .font(.body)
+                    } else {
+                        Text("No activity selected")
+                            .font(.headline)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+                
+                Spacer()
+                
+                HStack {
+                    Spacer()
+                    Button("Close") {
+                        state.showInfoPopup = false
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+            }
+            .padding()
+            .frame(width: 400, height: 400)
         }
     }
 }
@@ -196,6 +239,8 @@ struct ContentView: View {
 // ActivitySelectorView has been integrated directly into ContentView
 
 struct ActivityTileView: View {
+    
+    
     let activity: Activity
     let isSelected: Bool
     @EnvironmentObject var state: AppState
@@ -204,99 +249,26 @@ struct ActivityTileView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Activity title
-            if isSelected && isEditing {
-                TextField("Title", text: Binding(
-                    get: { activity.title },
-                    set: { newTitle in
-                        if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
-                            state.activities[index].title = newTitle
-                            state.saveActivities()
-                        }
-                    }
-                ))
-                .font(.headline)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal, 4)
-            } else {
-                Text(activity.title)
-                    .font(.headline)
-                    .foregroundColor(isSelected ? .primary : .secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.top, 8)
-                    .lineLimit(1)
-            }
+            ActivityTitleView(
+                activity: activity,
+                isSelected: isSelected,
+                isEditing: isEditing
+            )
             
             // Activity description
-            if isSelected && isEditing {
-                TextField("Description", text: Binding(
-                    get: { activity.description },
-                    set: { newDesc in
-                        if let index = state.activities.firstIndex(where: { $0.id == activity.id }) {
-                            state.activities[index].description = newDesc
-                            state.saveActivities()
-                        }
-                    }
-                ))
-                .font(.subheadline)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal, 4)
-            } else {
-                Text(activity.description)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 8)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            ActivityDescriptionView(
+                activity: activity,
+                isSelected: isSelected,
+                isEditing: isEditing
+            )
             
             Spacer()
             
-            // Controls at the bottom
-            HStack {
-                Button(action: {
-                    state.selectedActivityId = activity.id
-                }) {
-                    Text(isSelected ? "Selected" : "Select")
-                        .font(.caption)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(isSelected ? Color.blue : Color.gray.opacity(0.3))
-                        .foregroundColor(isSelected ? .white : .primary)
-                        .cornerRadius(4)
-                }
-                
-                Spacer()
-                
-                if isSelected {
-                    Button(action: {
-                        isEditing.toggle()
-                    }) {
-                        Text(isEditing ? "Done" : "Edit")
-                            .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(Color.orange.opacity(0.8))
-                            .foregroundColor(.white)
-                            .cornerRadius(4)
-                    }
-                }
-                
-                if activity.title != "Off the Rails" {
-                    Button(action: {
-                        state.deleteActivity(activity.id)
-                    }) {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(Color.red.opacity(0.8))
-                            .foregroundColor(.white)
-                            .cornerRadius(4)
-                    }
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            // Activity controls
+            ActivityControlsView(
+                activity: activity,
+                isSelected: isSelected,
+            )
         }
         .frame(maxWidth: .infinity)
         .background(isSelected ? Color.blue.opacity(0.1) : Color.gray.opacity(0.05))
@@ -309,5 +281,120 @@ struct ActivityTileView: View {
         .onTapGesture {
             state.selectedActivityId = activity.id
         }
+    }
+}
+
+
+struct DeleteButton: View {
+    let activityId: String
+    @EnvironmentObject var state: AppState
+    
+    var body: some View {
+        Button(action: {
+            state.deleteActivity(id: activityId)
+        }) {
+            Image(systemName: "trash")
+                .font(.caption)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.red.opacity(0.8))
+                .foregroundColor(.white)
+                .cornerRadius(4)
+        }
+    }
+}
+
+struct EditToggleButton: View {
+    @Binding var isEditing: Bool
+    
+    var body: some View {
+        Button(action: {
+            isEditing.toggle()
+        }) {
+            Text(isEditing ? "Done" : "Edit")
+                .font(.caption)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.orange.opacity(0.8))
+                .foregroundColor(.white)
+                .cornerRadius(4)
+        }
+    }
+}
+
+struct ActivityTitleView: View {
+    let activity: Activity
+    let isSelected: Bool
+    let isEditing: Bool
+    @EnvironmentObject var state: AppState
+    
+    var body: some View {
+        if isSelected && isEditing {
+            TextField("Title", text: Binding(
+                get: { activity.title },
+                set: { value in
+                    var newActivity = activity
+                    newActivity.title = value
+                    state.updateActivity(activity: newActivity)
+                }
+            ))
+            .font(.headline)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding(.horizontal, 4)
+        } else {
+            Text(activity.title)
+                .font(.headline)
+                .foregroundColor(isSelected ? .primary : .secondary)
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                .lineLimit(1)
+        }
+    }
+}
+
+struct ActivityDescriptionView: View {
+    let activity: Activity
+    let isSelected: Bool
+    let isEditing: Bool
+    @EnvironmentObject var state: AppState
+    
+    var body: some View {
+        if isSelected && isEditing {
+            TextField("Description", text: Binding(
+                get: { activity.description },
+                set: { value in
+                    var newActivity = activity
+                    newActivity.description = value
+                    state.updateActivity(activity: activity)
+                }
+            ))
+            .font(.subheadline)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding(.horizontal, 4)
+        } else {
+            Text(activity.description)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .padding(.horizontal, 8)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+struct ActivityControlsView: View {
+    let activity: Activity
+    let isSelected: Bool
+    
+    var body: some View {
+        HStack {
+            Spacer()
+            
+            if activity.title != "Off the Rails" {
+                DeleteButton(activityId: activity.id)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 8)
     }
 }

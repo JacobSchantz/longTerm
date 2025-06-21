@@ -3,16 +3,17 @@ import SwiftUI
 import ScreenCaptureKit
 import Vision
 import AppKit
+import Combine
 
 struct Activity: Identifiable, Codable, Hashable {
     var id: String
     var title: String
     var description: String
     
-    init(title: String, description: String) {
+    init(id: String, title: String, description: String) {
         self.title = title
         self.description = description
-        self.id = title == "Off the Rails" ? "default" : UUID().uuidString
+        self.id = id
     }
     
     enum CodingKeys: String, CodingKey {
@@ -33,16 +34,16 @@ class AppState: ObservableObject {
     @Published var isCapturing: Bool = false
     @Published var isCheckingWithAI: Bool = false // Indicator for when AI check is in progress
     @Published var onTaskPercentage: Int = 0
+    @Published var isOverlayVisible: Bool = false
+    
+    // Cancellables for Combine subscriptions
+    private var cancellables = Set<AnyCancellable>()
     
     private var timer: Timer?
     private var statusItem: NSStatusItem?
     
     @Published var activities: [Activity] = []
     @Published var selectedActivityId: String?
-    @Published var isEditing: Bool = false
-    @Published var isCreatingNew: Bool = false
-    @Published var newActivityTitle: String = ""
-    @Published var newActivityDesc: String = ""
     
     var selectedActivity: Activity? {
         get { activities.first(where: { $0.id == selectedActivityId }) }
@@ -55,17 +56,112 @@ class AppState: ObservableObject {
         }
     }
     let activitiesKey = "savedActivities"
-    let defaultActivities = [Activity(title: "Off the Rails", description: "Default no protection")]
+    let defaultActivity = Activity(id: "default", title: "Off the Rails", description: "Default no protection")
     
     init() {
+        // Load saved activities
+        var tempActivities = [Activity]()
         if let data = UserDefaults.standard.data(forKey: activitiesKey),
-           let decoded = try? JSONDecoder().decode([Activity].self, from: data) {
-            activities = decoded + defaultActivities
-        } else {
-            activities = defaultActivities
+           let savedActivities = try? JSONDecoder().decode([Activity].self, from: data) {
+            tempActivities = savedActivities
         }
+        
+        if (!tempActivities.contains(where: { $0.id == "default" })) {
+            tempActivities.append(defaultActivity)
+        }
+
+                    self.activities = tempActivities
+
+
+        
+        // Load overlay visibility preference
+        self.isOverlayVisible = UserDefaults.standard.bool(forKey: "isOverlayVisible")
+        
         selectedActivityId = activities.first?.id
         updateMenuBar(onTaskPercentage: 0.0)
+        
+        // Setup app when launched
+        setupAppOnLaunch()
+    }
+    
+    // Setup method to be called when app launches
+    func setupAppOnLaunch() {
+        // Check screen recording permission
+        checkPermissionOnAppear()
+        
+        // Update menu bar with initial values
+        updateMenuBar(onTaskPercentage: 0.0)
+        
+        // Setup notification observers
+        setupNotificationObservers()
+        
+        // Setup overlay window
+        setupOverlayWindow()
+    }
+
+    func addActivity() {
+        let newActivity = Activity(id: UUID().uuidString, title: "New Activity", description: "Description")
+        activities.append(newActivity)
+        saveActivities()
+    }
+    
+    // Published property for zero percentage alert
+    @Published var showZeroPercentAlert: Bool = false
+    @Published var showInfoPopup: Bool = false
+    
+    // Setup notification observers
+    func setupNotificationObservers() {
+        // Add observer for on-task percentage changes
+        $onTaskPercentage
+            .receive(on: RunLoop.main)
+            .sink { [weak self] newValue in
+                guard let self = self else { return }
+                if newValue == 0 && !self.isCheckingWithAI {
+                    self.showZeroPercentAlert = true
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    // Show info popup
+    @objc func showInfo() {
+        showInfoPopup = true
+        NSApp.activate(ignoringOtherApps: true)
+        NotificationCenter.default.post(name: Notification.Name("ShowInfoPopup"), object: nil)
+    }
+    
+    // Overlay window controller
+    private var overlayWindowController: OverlayWindowController?
+    
+    // Setup overlay window
+    func setupOverlayWindow() {
+        // Post notification to update overlay window
+        NotificationCenter.default.post(name: Notification.Name("OverlayToggled"), object: nil)
+    }
+    
+    // Method to update the overlay window based on state
+    func updateOverlayWindow() {
+        if isOverlayVisible {
+            if overlayWindowController == nil {
+                // Create the overlay content
+                let hostingView = NSHostingView(rootView: OverlayContentView().environmentObject(self))
+                
+                // Create and show the overlay window
+                overlayWindowController = OverlayWindowController(contentView: hostingView, size: CGSize(width: 180, height: 80))
+                overlayWindowController?.showWindow(nil)
+            }
+        } else {
+            // Close and remove the overlay window
+            overlayWindowController?.close()
+            overlayWindowController = nil
+        }
+    }
+
+    func updateActivity(activity: Activity) {
+        if let index = activities.firstIndex(where: { $0.id == activity.id }) {
+            activities[index] = activity
+        }
+        saveActivities()
     }
     
     func updateMenuBar(onTaskPercentage: Double) {
@@ -79,9 +175,14 @@ class AppState: ObservableObject {
             
             // Create an attributed string with color based on on-task status
             let textColor = isOnTask ? NSColor.systemGreen : NSColor.systemRed
+            
+            // Dim the text if AI is thinking
+            let alpha: CGFloat = isCheckingWithAI ? 0.6 : 1.0
+            let colorWithAlpha = textColor.withAlphaComponent(alpha)
+            
             let font = NSFont.systemFont(ofSize: 12, weight: .bold)
             let attributes: [NSAttributedString.Key: Any] = [
-                .foregroundColor: textColor,
+                .foregroundColor: colorWithAlpha,
                 .font: font
             ]
             let attributedString = NSAttributedString(string: percentageText, attributes: attributes)
@@ -89,8 +190,15 @@ class AppState: ObservableObject {
             // Set the title with the attributed string
             button.attributedTitle = attributedString
             
-            // Remove any existing image
-            button.image = nil
+            // Add a thinking indicator if AI is checking
+            if isCheckingWithAI {
+                let image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "AI is thinking")
+                image?.size = NSSize(width: 16, height: 16)
+                button.image = image
+                button.imagePosition = .imageLeading
+            } else {
+                button.image = nil
+            }
         }
         
         let menu = NSMenu()
@@ -99,6 +207,16 @@ class AppState: ObservableObject {
         if isCheckingWithAI {
             let checkingItem = NSMenuItem(title: "Checking with AI...", action: nil, keyEquivalent: "")
             checkingItem.isEnabled = false
+            
+            // Add a progress indicator to the menu item
+            let progressIndicator = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 16, height: 16))
+            progressIndicator.style = .spinning
+            progressIndicator.isIndeterminate = true
+            progressIndicator.controlSize = .small
+            progressIndicator.isDisplayedWhenStopped = false
+            progressIndicator.startAnimation(nil)
+            
+            checkingItem.view = progressIndicator
             menu.addItem(checkingItem)
         } else {
             let statusItem = NSMenuItem(title: "On task: \(onTaskPercentage)%", action: nil, keyEquivalent: "")
@@ -110,6 +228,17 @@ class AppState: ObservableObject {
         let checkWithAIItem = NSMenuItem(title: "Check with AI", action: #selector(checkWithAI), keyEquivalent: "")
         checkWithAIItem.target = self
         menu.addItem(checkWithAIItem)
+        
+        // Add info button menu item
+        let infoItem = NSMenuItem(title: "Show Information", action: #selector(showInfo), keyEquivalent: "i")
+        infoItem.target = self
+        menu.addItem(infoItem)
+        
+        // Add overlay toggle menu item
+        let overlayTitle = isOverlayVisible ? "Hide Overlay" : "Show Overlay"
+        let overlayItem = NSMenuItem(title: overlayTitle, action: #selector(toggleOverlay), keyEquivalent: "o")
+        overlayItem.target = self
+        menu.addItem(overlayItem)
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -118,6 +247,20 @@ class AppState: ObservableObject {
     
     @objc func openApp() {
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func toggleOverlay() {
+        // Toggle overlay visibility
+        isOverlayVisible.toggle()
+        
+        // Save preference
+        UserDefaults.standard.set(isOverlayVisible, forKey: "isOverlayVisible")
+        
+        // Update menu bar to reflect new state
+        updateMenuBar(onTaskPercentage: Double(onTaskPercentage))
+        
+        // Notify about overlay toggle
+        NotificationCenter.default.post(name: Notification.Name("OverlayToggled"), object: nil)
     }
     
     
@@ -146,7 +289,7 @@ class AppState: ObservableObject {
     
     func startCapture() {
         guard !isCapturing else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 7.0, repeats: true) { [weak self] _ in
             self?.captureAndRecognizeText()
         }
         captureAndRecognizeText()
@@ -273,20 +416,8 @@ class AppState: ObservableObject {
         }
     }
     
-    func createActivity() {
-        if !newActivityTitle.isEmpty && !activities.contains(where: { $0.title == newActivityTitle }) {
-            let newActivity = Activity(title: newActivityTitle, description: newActivityDesc)
-            activities.append(newActivity)
-            selectedActivityId = newActivity.id
-            newActivityTitle = ""
-            newActivityDesc = ""
-            isCreatingNew = false
-            saveActivities()
-        }
-    }
-    
-    func deleteActivity(_ id: String?) {
-        guard let activityId = id,
+    func deleteActivity(id activityId: String?) {
+        guard let activityId = activityId,
               let index = activities.firstIndex(where: { $0.id == activityId && $0.title != "Off the Rails" }) else {
             return
         }
