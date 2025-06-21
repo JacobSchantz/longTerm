@@ -149,11 +149,40 @@ class AppState: ObservableObject {
                 // Create and show the overlay window
                 overlayWindowController = OverlayWindowController(contentView: hostingView, size: CGSize(width: 180, height: 80))
                 overlayWindowController?.showWindow(nil)
+                
+                // Register for workspace notifications to keep overlay visible
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(applicationActivated),
+                    name: NSWorkspace.didActivateApplicationNotification,
+                    object: nil
+                )
+            } else {
+                // Ensure window is still visible
+                overlayWindowController?.showWindow(nil)
             }
         } else {
             // Close and remove the overlay window
             overlayWindowController?.close()
             overlayWindowController = nil
+            
+            // Remove workspace notification observer
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSWorkspace.didActivateApplicationNotification,
+                object: nil
+            )
+        }
+    }
+    
+    // Called when another application is activated
+    @objc func applicationActivated(_ notification: Notification) {
+        // Ensure our overlay stays on top when switching apps
+        if isOverlayVisible && overlayWindowController != nil {
+            // Small delay to let the app switch complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.overlayWindowController?.showWindow(nil)
+            }
         }
     }
 
@@ -165,8 +194,11 @@ class AppState: ObservableObject {
     }
     
     func updateMenuBar(onTaskPercentage: Double) {
-        let statusBar = NSStatusBar.system
-        statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
+        // Create the status item only once if it doesn't exist
+        if statusItem == nil {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        }
+        
         let isOnTask = onTaskPercentage >= 70
         
         if let button = statusItem?.button {
@@ -405,7 +437,6 @@ class AppState: ObservableObject {
                     }
                 }
             }
-            self.isCheckingWithAI = false
         }
     }
     

@@ -12,23 +12,24 @@ class OverlayWindow: NSWindow {
         )
         
         // Configure window properties for overlay
-        self.level = .floating
+        self.level = .floating + 1 // Higher level to ensure it stays on top
         self.backgroundColor = .clear
         self.isOpaque = false
         self.hasShadow = false
         self.ignoresMouseEvents = true
-        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         self.isReleasedWhenClosed = false
+        self.hidesOnDeactivate = false // Prevent hiding when app is not active
     }
     
     // Prevent the window from becoming key window
     override var canBecomeKey: Bool {
-        return false
+        return true
     }
     
     // Prevent the window from becoming main window
     override var canBecomeMain: Bool {
-        return false
+        return true
     }
 }
 
@@ -49,6 +50,12 @@ class OverlayWindowController: NSWindowController {
     
     override func showWindow(_ sender: Any?) {
         window?.orderFront(nil) // Use orderFront instead of makeKeyAndOrderFront
+        
+        // Ensure window stays visible across spaces and app switches
+        if let window = window {
+            NSApp.activate(ignoringOtherApps: true)
+            window.orderFrontRegardless()
+        }
     }
 }
 

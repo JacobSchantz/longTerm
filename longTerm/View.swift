@@ -38,11 +38,8 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
                     ForEach(state.activities) { activity in
-                        ActivityTileView(activity: activity, isSelected: state.selectedActivityId == activity.id)
+                        ActivityItem(activity: activity)
                             .environmentObject(state)
-                            .frame(width: 250)
-                            .scaleEffect(state.selectedActivityId == activity.id ? 1.05 : 0.95)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: state.selectedActivityId)
                     }
                 }
                 .padding(.horizontal, 15)
@@ -236,31 +233,38 @@ struct ContentView: View {
     }
 }
 
-// ActivitySelectorView has been integrated directly into ContentView
 
-struct ActivityTileView: View {
-    
-    
+struct ActivityItem: View {
     let activity: Activity
-    let isSelected: Bool
     @EnvironmentObject var state: AppState
-    @State private var isEditing: Bool = false
 
     var body: some View {
+        let isSelected = state.selectedActivityId == activity.id
         VStack(alignment: .leading, spacing: 8) {
             // Activity title
-            ActivityTitleView(
-                activity: activity,
-                isSelected: isSelected,
-                isEditing: isEditing
-            )
-            
+            TextField("Title", text: Binding(
+                get: { activity.title },
+                set: { value in
+                    var newActivity = activity
+                    newActivity.title = value
+                    state.updateActivity(activity: newActivity)
+                }
+            ))
+            .font(.headline)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding(.horizontal, 4)
             // Activity description
-            ActivityDescriptionView(
-                activity: activity,
-                isSelected: isSelected,
-                isEditing: isEditing
-            )
+            TextField("Description", text: Binding(
+                get: { activity.description },
+                set: { value in
+                    var newActivity = activity
+                    newActivity.description = value
+                    state.updateActivity(activity: activity)
+                }
+            ))
+            .font(.subheadline)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding(.horizontal, 4)
             
             Spacer()
             
@@ -304,83 +308,6 @@ struct DeleteButton: View {
     }
 }
 
-struct EditToggleButton: View {
-    @Binding var isEditing: Bool
-    
-    var body: some View {
-        Button(action: {
-            isEditing.toggle()
-        }) {
-            Text(isEditing ? "Done" : "Edit")
-                .font(.caption)
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color.orange.opacity(0.8))
-                .foregroundColor(.white)
-                .cornerRadius(4)
-        }
-    }
-}
-
-struct ActivityTitleView: View {
-    let activity: Activity
-    let isSelected: Bool
-    let isEditing: Bool
-    @EnvironmentObject var state: AppState
-    
-    var body: some View {
-        if isSelected && isEditing {
-            TextField("Title", text: Binding(
-                get: { activity.title },
-                set: { value in
-                    var newActivity = activity
-                    newActivity.title = value
-                    state.updateActivity(activity: newActivity)
-                }
-            ))
-            .font(.headline)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.horizontal, 4)
-        } else {
-            Text(activity.title)
-                .font(.headline)
-                .foregroundColor(isSelected ? .primary : .secondary)
-                .padding(.horizontal, 8)
-                .padding(.top, 8)
-                .lineLimit(1)
-        }
-    }
-}
-
-struct ActivityDescriptionView: View {
-    let activity: Activity
-    let isSelected: Bool
-    let isEditing: Bool
-    @EnvironmentObject var state: AppState
-    
-    var body: some View {
-        if isSelected && isEditing {
-            TextField("Description", text: Binding(
-                get: { activity.description },
-                set: { value in
-                    var newActivity = activity
-                    newActivity.description = value
-                    state.updateActivity(activity: activity)
-                }
-            ))
-            .font(.subheadline)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.horizontal, 4)
-        } else {
-            Text(activity.description)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.horizontal, 8)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
 
 struct ActivityControlsView: View {
     let activity: Activity
@@ -389,7 +316,6 @@ struct ActivityControlsView: View {
     var body: some View {
         HStack {
             Spacer()
-            
             if activity.title != "Off the Rails" {
                 DeleteButton(activityId: activity.id)
             }
