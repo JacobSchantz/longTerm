@@ -36,16 +36,13 @@ class OverlayWindow: NSWindow {
 // Window controller to manage the overlay window
 class OverlayWindowController: NSWindowController {
     convenience init(contentView: NSView, size: CGSize) {
-        let window = OverlayWindow(contentRect: NSRect(x: 0, y: 0, width: 3000, height: 1000))
+        let screenWidth = NSScreen.main?.frame.width ?? 300
+        let screenHeight = NSScreen.main?.frame.height ?? 100
+        let window = OverlayWindow(contentRect: NSRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
         window.contentView = contentView
         self.init(window: window)
         
-        // Position the window in the top-right corner
-        if let screenFrame = NSScreen.main?.visibleFrame {
-            let xPos = screenFrame.maxX - size.width - 20
-            let yPos = screenFrame.maxY - size.height - 20
-            window.setFrameOrigin(NSPoint(x: 10, y: 10))
-        }
+        window.setFrameOrigin(NSPoint(x: 0, y: 0))
     }
     
     override func showWindow(_ sender: Any?) {
@@ -99,15 +96,16 @@ struct OverlayContentView: View {
     
     var body: some View {
         let notOnTask = state.onTaskPercentage == 0
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center) {
+                        Spacer()
+
             HStack {
+                Spacer()
                 Text("On Task:")
                     .font(.system(size: 12, weight: .medium))
-                
                 Text("\(state.onTaskPercentage)%")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
-                
                 if state.isCheckingWithAI {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
@@ -115,21 +113,17 @@ struct OverlayContentView: View {
                         .frame(width: 12, height: 12)
                 }
             }
-            
+            Spacer()
             if let activity = state.selectedActivity {
                 Text(activity.title)
                     .font(.system(size: 11))
                     .lineLimit(1)
             }
+                        Spacer()
         }
-        .padding(notOnTask ? 400 : 10)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(notOnTask ? Color.red.opacity(0.7) : Color.black.opacity(0.7))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            Rectangle()
+                .fill(notOnTask ? Color.red.opacity(0.1) : Color.black.opacity(0.1))
         )
         // Add subtle animation when changing colors
         .animation(.easeInOut(duration: 0.3), value: state.onTaskPercentage == 0)
