@@ -36,7 +36,7 @@ class OverlayWindow: NSWindow {
 // Window controller to manage the overlay window
 class OverlayWindowController: NSWindowController {
     convenience init(contentView: NSView, size: CGSize) {
-        let window = OverlayWindow(contentRect: NSRect(x: 0, y: 0, width: size.width, height: size.height))
+        let window = OverlayWindow(contentRect: NSRect(x: 0, y: 0, width: 3000, height: 1000))
         window.contentView = contentView
         self.init(window: window)
         
@@ -44,7 +44,7 @@ class OverlayWindowController: NSWindowController {
         if let screenFrame = NSScreen.main?.visibleFrame {
             let xPos = screenFrame.maxX - size.width - 20
             let yPos = screenFrame.maxY - size.height - 20
-            window.setFrameOrigin(NSPoint(x: xPos, y: yPos))
+            window.setFrameOrigin(NSPoint(x: 10, y: 10))
         }
     }
     
@@ -98,6 +98,7 @@ struct OverlayContentView: View {
     @EnvironmentObject var state: AppState
     
     var body: some View {
+        let notOnTask = state.onTaskPercentage == 0
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("On Task:")
@@ -121,15 +122,17 @@ struct OverlayContentView: View {
                     .lineLimit(1)
             }
         }
-        .padding(10)
+        .padding(notOnTask ? 400 : 10)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.7))
+                .fill(notOnTask ? Color.red.opacity(0.7) : Color.black.opacity(0.7))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.white.opacity(0.2), lineWidth: 1)
         )
+        // Add subtle animation when changing colors
+        .animation(.easeInOut(duration: 0.3), value: state.onTaskPercentage == 0)
     }
 }
 
