@@ -119,13 +119,208 @@
                                         <string>com.longTermSelf.longTerm</string>
                                         <key>keepAlive</key>
                                         <true/>
+                                        <key>runAtLoad</key>
+                                        <true/>
+                                        <key>SuccessfulExit</key>
+                                        <false/>
+                                        <key>RunAtLoad</key>
+                                        <true/>
+                                        <key>KeepAlive</key>
+                                        <true/>
                                     </dict>
                                 </array>
+                                <key>backgroundTaskManagementEnabled</key>
+                                <true/>
+                                <key>allowBackgroundRunning</key>
+                                <true/>
                             </dict>
                         </dict>
                     </array>
                 </dict>
             </dict>
+        </dict>
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Notifications Permissions</string>
+            <key>PayloadIdentifier</key>
+            <string>com.longTermSelf.longTerm.notifications</string>
+            <key>PayloadType</key>
+            <string>com.apple.notificationsettings</string>
+            <key>PayloadUUID</key>
+            <string>6E5E0F4A-B5C1-4B9D-8B2E-47D8A5E35A81</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>NotificationSettings</key>
+            <array>
+                <dict>
+                    <key>BundleIdentifier</key>
+                    <string>com.longTermSelf.longTerm</string>
+                    <key>NotificationsEnabled</key>
+                    <true/>
+                    <key>ShowInNotificationCenter</key>
+                    <true/>
+                    <key>ShowInLockScreen</key>
+                    <true/>
+                    <key>AlertType</key>
+                    <integer>1</integer>
+                    <key>BadgesEnabled</key>
+                    <true/>
+                    <key>SoundsEnabled</key>
+                    <true/>
+                    <key>AlertsEnabled</key>
+                    <true/>
+                    <key>CriticalAlertEnabled</key>
+                    <true/>
+                </dict>
+            </array>
+        </dict>
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Accessibility Permissions</string>
+            <key>PayloadIdentifier</key>
+            <string>com.longTermSelf.longTerm.accessibility</string>
+            <key>PayloadType</key>
+            <string>com.apple.ManagedClient.preferences</string>
+            <key>PayloadUUID</key>
+            <string>7F5E0F4A-B5C1-4B9D-8B2E-47D8A5E35A82</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>PayloadContent</key>
+            <dict>
+                <key>com.apple.applicationaccess</key>
+                <dict>
+                    <key>Forced</key>
+                    <array>
+                        <dict>
+                            <key>mcx_preference_settings</key>
+                            <dict>
+                                <key>accessibilityEnabled</key>
+                                <true/>
+                                <key>allowedApplications</key>
+                                <array>
+                                    <string>com.longTermSelf.longTerm</string>
+                                </array>
+                            </dict>
+                        </dict>
+                    </array>
+                </dict>
+                <key>com.apple.TCC.configuration-profile-policy</key>
+                <dict>
+                    <key>Forced</key>
+                    <array>
+                        <dict>
+                            <key>mcx_preference_settings</key>
+                            <dict>
+                                <key>Services</key>
+                                <dict>
+                                    <key>Accessibility</key>
+                                    <array>
+                                        <dict>
+                                            <key>Allowed</key>
+                                            <true/>
+                                            <key>CodeRequirement</key>
+                                            <string>identifier "com.longTermSelf.longTerm"</string>
+                                            <key>Identifier</key>
+                                            <string>com.longTermSelf.longTerm</string>
+                                            <key>IdentifierType</key>
+                                            <string>bundleID</string>
+                                        </dict>
+                                    </array>
+                                </dict>
+                            </dict>
+                        </dict>
+                    </array>
+                </dict>
+            </dict>
+        </dict>
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Screen Time Downtime</string>
+            <key>PayloadIdentifier</key>
+            <string>com.longTermSelf.longTerm.screentime</string>
+            <key>PayloadType</key>
+            <string>com.apple.applicationaccess.new</string>
+            <key>PayloadUUID</key>
+            <string>8F5E0F4A-B5C1-4B9D-8B2E-47D8A5E35A83</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>familyControlsEnabled</key>
+            <true/>
+            <key>familyControlsRequirePassword</key>
+            <true/>
+            <key>durationAndScheduling</key>
+            <dict>
+                <key>downtimeEnabled</key>
+                <true/>
+                <key>downtimeEnforcedByBedtime</key>
+                <false/>
+                <key>downtimeScheduleType</key>
+                <string>recurring</string>
+                <key>downtimeScheduleStartsFrom</key>
+                <string>fixed</string>
+                <key>downtimeHoursSchedule</key>
+                <dict>
+                    <key>Sunday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Monday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Tuesday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Wednesday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Thursday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Friday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                    <key>Saturday</key>
+                    <dict>
+                        <key>startTime</key>
+                        <date>2001-01-01T22:00:00Z</date>
+                        <key>endTime</key>
+                        <date>2001-01-02T06:00:00Z</date>
+                    </dict>
+                </dict>
+            </dict>
+            <key>allowDowntimeModification</key>
+            <false/>
+            <key>allowAppRemoval</key>
+            <false/>
+            <key>allowEnablingRestrictions</key>
+            <false/>
+            <key>allowRemovingRestrictions</key>
+            <false/>
+            <key>allowScreenTimeFeatureConfiguration</key>
+            <false/>
         </dict>
     </array>
     <key>PayloadDescription</key>
@@ -137,7 +332,7 @@
     <key>PayloadOrganization</key>
     <string>longTermSelf</string>
     <key>PayloadRemovalDisallowed</key>
-    <false/>
+    <true/>
     <key>PayloadScope</key>
     <string>System</string>
     <key>PayloadType</key>

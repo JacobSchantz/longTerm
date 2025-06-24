@@ -12,14 +12,34 @@ class OverlayWindow: NSWindow {
         )
         
         // Configure window properties for overlay
-        self.level = .floating + 1 // Higher level to ensure it stays on top
+        self.level = .screenSaver // Use screenSaver level to ensure it stays on top of everything
         self.backgroundColor = .clear
         self.isOpaque = false
         self.hasShadow = false
         self.ignoresMouseEvents = true
-        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         self.isReleasedWhenClosed = false
         self.hidesOnDeactivate = false // Prevent hiding when app is not active
+        self.alphaValue = 0.9 // Slightly transparent
+        
+        // Register for workspace notifications to ensure window stays visible
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(workspaceDidActivateApplication(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func workspaceDidActivateApplication(_ notification: Notification) {
+        // Ensure window stays on top when switching applications
+        DispatchQueue.main.async { [weak self] in
+            self?.orderFrontRegardless()
+        }
     }
     
     // Prevent the window from becoming key window
@@ -33,28 +53,7 @@ class OverlayWindow: NSWindow {
     }
 }
 
-// Window controller to manage the overlay window
-class OverlayWindowController: NSWindowController {
-    convenience init(contentView: NSView, size: CGSize) {
-        let screenWidth = NSScreen.main?.frame.width ?? 300
-        let screenHeight = NSScreen.main?.frame.height ?? 100
-        let window = OverlayWindow(contentRect: NSRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
-        window.contentView = contentView
-        self.init(window: window)
-        
-        window.setFrameOrigin(NSPoint(x: 0, y: 0))
-    }
-    
-    override func showWindow(_ sender: Any?) {
-        window?.orderFront(nil) // Use orderFront instead of makeKeyAndOrderFront
-        
-        // Ensure window stays visible across spaces and app switches
-        if let window = window {
-            NSApp.activate(ignoringOtherApps: true)
-            window.orderFrontRegardless()
-        }
-    }
-}
+// OverlayWindowController is now in a separate file: OverlayWindowController.swift
 
 // SwiftUI wrapper for the overlay window
 struct OverlayWindowView: NSViewRepresentable {

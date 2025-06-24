@@ -2,15 +2,51 @@ import SwiftUI
 import ScreenCaptureKit
 import Vision
 import Foundation
+import CoreServices
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
 
 // UI code only. State logic is now in ActivityState.swift.
 
+import AppKit
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register for relaunch at login
+        let launchAtLogin = true
+        if launchAtLogin {
+            if let bundleID = Bundle.main.bundleIdentifier {
+                LSSharedFileListInsertItemURL(
+                    LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil).takeRetainedValue(),
+                    kLSSharedFileListItemLast.takeUnretainedValue(),
+                    nil,
+                    nil,
+                    NSURL.fileURL(withPath: Bundle.main.bundlePath) as CFURL,
+                    [kLSSharedFileListItemHidden: false] as CFDictionary,
+                    nil
+                )
+            }
+        }
+        
+        // Prevent app from appearing in dock
+        NSApp.setActivationPolicy(.accessory)
+    }
+    
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Prevent app from terminating when all windows are closed
+        return false
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        // Perform cleanup if needed before termination
+    }
+}
+
 @main
 struct MainView: App {
     @StateObject private var appState = AppState()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
         WindowGroup {
