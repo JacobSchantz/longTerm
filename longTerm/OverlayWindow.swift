@@ -130,7 +130,6 @@ struct OverlayContentView: View {
         let notOnTask = state.onTaskPercentage == 0
         VStack(alignment: .center) {
             HStack {
-                
                 Text("On Task:")
                     .font(.system(size: 12, weight: .medium))
                     .padding(5)
@@ -144,19 +143,16 @@ struct OverlayContentView: View {
                     .cornerRadius(4)
                 Spacer()
             }
-            .background(Color.orange.opacity(0.99))
+            .background(Color.white.opacity(0.1))
             // .background(Color.orange)
             .padding(.vertical, 40)
             .padding(.horizontal, 20)
             Spacer()
         }
-//         .background(
-//             TopRoundedRectangle(radius: 16)
-//                 .strokeBorder(Color.red, lineWidth: 8)
-//         )
-        // .background(
-        //     TopRoundedRectangle(radius: 16)
-        //         .fill(notOnTask ? Color.white.opacity(1.0) : Color.clear
+        .background(
+            TopRoundedRectangle(radius: 16)
+                .fill(notOnTask ? Color.white.opacity(1.0) : Color.clear)
+        )
         
         // Add subtle animation when changing colors
         .animation(.easeInOut(duration: 0.3), value: state.onTaskPercentage == 0)

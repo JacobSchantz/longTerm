@@ -50,9 +50,9 @@ struct MainView: App {
     
     init() {
         // Schedule auto-start after a short delay to ensure everything is initialized
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            appState.startCapture()
-        }
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+//            appState.startCapture()
+//        }
     }
     
     var body: some Scene {

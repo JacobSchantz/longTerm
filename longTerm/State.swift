@@ -83,6 +83,7 @@ class AppState: ObservableObject {
         // Setup app when launched
         setupAppOnLaunch()
         updateOverlayWindow()
+        startCapture()
     }
     
     // Setup method to be called when app launches
