@@ -426,9 +426,6 @@ class AppState: ObservableObject {
         if percentage == 0 {
             // User is off task and overlay is visible - mute audio
             muteSystemAudio()
-        } else {
-            // User is on task or overlay is not visible - restore audio
-            restoreSystemAudio()
         }
     }
     

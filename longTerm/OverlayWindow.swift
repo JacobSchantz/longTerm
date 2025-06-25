@@ -136,7 +136,7 @@ struct OverlayContentView: View {
                         .font(.system(size: 12, weight: .medium))
                         .padding(5)
                         .cornerRadius(4)
-                    Text("\(state.onTaskPercentage)%")
+                    Text("\(state.onTaskPercentage.rounded(.down))%")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
                         .padding(5)
