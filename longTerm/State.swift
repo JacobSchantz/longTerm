@@ -4,6 +4,7 @@ import ScreenCaptureKit
 import Vision
 import AppKit
 import Combine
+import CoreAudio
 
 struct Activity: Identifiable, Codable, Hashable {
     var id: String
@@ -33,8 +34,13 @@ class AppState: ObservableObject {
     @Published var statusMessage: String = "Not capturing"
     @Published var isCapturing: Bool = false
     @Published var isCheckingWithAI: Bool = false // Indicator for when AI check is in progress
-    @Published var onTaskPercentage: Int = 0
+    @Published var onTaskPercentage: Double = 0
     @Published var isOverlayVisible: Bool = true
+    
+    // Previous system volume before muting
+    private var previousVolume: Float = 1.0
+    // Flag to track if audio is currently muted
+    private var isAudioMuted: Bool = false
     
     // Cancellables for Combine subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -78,7 +84,10 @@ class AppState: ObservableObject {
         // self.isOverlayVisible = UserDefaults.standard.bool(forKey: "isOverlayVisible")
         
         selectedActivityId = activities.first?.id
-        updateMenuBar(onTaskPercentage: 0.0)
+        updateMenuBar(onTaskPercentage: 0)
+        
+        // Store initial system volume
+        previousVolume = getSystemVolume()
         
         // Setup app when launched
         setupAppOnLaunch()
@@ -92,7 +101,7 @@ class AppState: ObservableObject {
         checkPermissionOnAppear()
         
         // Update menu bar with initial values
-        updateMenuBar(onTaskPercentage: 0.0)
+        updateMenuBar(onTaskPercentage: 0)
         
         // Setup notification observers
         setupNotificationObservers()
@@ -153,9 +162,15 @@ class AppState: ObservableObject {
                     name: NSWorkspace.didActivateApplicationNotification,
                     object: nil
                 )
+                
+                // Block audio when overlay is visible
+                muteSystemAudio()
             } else {
                 // Ensure window is still visible
                 overlayWindowController?.showWindow(nil)
+                
+                // Ensure audio remains blocked
+                muteSystemAudio()
             }
         } else {
             // Close and remove the overlay window
@@ -168,6 +183,9 @@ class AppState: ObservableObject {
                 name: NSWorkspace.didActivateApplicationNotification,
                 object: nil
             )
+            
+            // Restore audio when overlay is hidden
+            restoreSystemAudio()
         }
     }
     
@@ -250,10 +268,71 @@ class AppState: ObservableObject {
         // Update menu bar to reflect new state
         updateMenuBar(onTaskPercentage: Double(onTaskPercentage))
         
+        // Update overlay window (which will handle audio blocking/restoring)
+        updateOverlayWindow()
+        
         // Notify about overlay toggle
         NotificationCenter.default.post(name: Notification.Name("OverlayToggled"), object: nil)
     }
     
+    
+    // Get the current system volume
+    private func getSystemVolume() -> Float {
+        var volume: Float = 1.0
+        let command = "osascript -e 'output volume of (get volume settings)'" 
+        
+        if let output = try? shellCommand(command), let volumeValue = Float(output) {
+            volume = volumeValue / 100.0 // Convert from percentage (0-100) to float (0.0-1.0)
+        }
+        
+        return volume
+    }
+    
+    // Execute shell command and return output
+    private func shellCommand(_ command: String) throws -> String {
+        let task = Process()
+        let pipe = Pipe()
+        
+        task.standardOutput = pipe
+        task.standardError = pipe
+        task.arguments = ["-c", command]
+        task.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        
+        try task.run()
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        
+        return output
+    }
+    
+    // Mute system audio when overlay is visible
+    private func muteSystemAudio() {
+            // Store current volume before muting
+            previousVolume = getSystemVolume()
+            
+            // Set system volume to 0
+            let command = "osascript -e 'set volume output volume 0'"
+            try? shellCommand(command)
+            
+            isAudioMuted = true
+            print("Audio muted. Previous volume: \(previousVolume)")
+    }
+    
+    // Restore system audio when overlay is hidden
+    private func restoreSystemAudio() {
+        if isAudioMuted {
+            // Convert back to percentage (0-100)
+            let volumePercentage = Int(previousVolume * 100)
+            
+            // Restore previous system volume
+            let command = "osascript -e 'set volume output volume \(volumePercentage)'"
+            try? shellCommand(command)
+            
+            isAudioMuted = false
+            print("Audio restored to previous volume: \(previousVolume)")
+        }
+    }
     
     func checkPermissionOnAppear() {
         Task {
@@ -337,6 +416,21 @@ class AppState: ObservableObject {
         // If no percentage is found, default to 0
         return 0
     }
+
+    func updatePercentage(_ percentage: Double) {
+        self.onTaskPercentage = percentage
+        updateMenuBar(onTaskPercentage: percentage)
+        self.isCheckingWithAI = false
+        
+        // Control audio based on task percentage
+        if percentage == 0 {
+            // User is off task and overlay is visible - mute audio
+            muteSystemAudio()
+        } else {
+            // User is on task or overlay is not visible - restore audio
+            restoreSystemAudio()
+        }
+    }
     
     @objc func checkWithAI() {
         // Ensure we're on the main thread for all UI updates
@@ -351,6 +445,14 @@ class AppState: ObservableObject {
         if isCheckingWithAI {
             return
         }
+
+        if (detectedText.count <= 20) {
+            self.errorMessage = ""
+                            self.aiResponse = "No text detected. Must be off task!"
+                updatePercentage(0.0)
+                return;
+        }
+
         
         // Set checking state on the main thread
         self.isCheckingWithAI = true
@@ -363,9 +465,7 @@ class AppState: ObservableObject {
             if currentActivity.id == "default" {
                 self.aiResponse = "You're on the default activity 'Off the Rails', so you're always 100% on task."
                 self.errorMessage = ""
-                self.onTaskPercentage = 100
-                updateMenuBar(onTaskPercentage: 100.0)
-                self.isCheckingWithAI = false
+                updatePercentage(100.0)
                 return
             }
             
@@ -378,18 +478,14 @@ class AppState: ObservableObject {
                         self.errorMessage = ""
                         
                         // Extract percentage from the response
-                        let percentage = extractPercentageFromResponse(response)
-                        self.onTaskPercentage = percentage
-                        
-                        updateMenuBar(onTaskPercentage: Double(percentage))
-                        
-                        // Set the checking indicator back to false after completing the AI check
-                        self.isCheckingWithAI = false
+                        let percentage = extractPercentageFromResponse(response)                        
+                        updatePercentage(Double(percentage))
                     }
                 } catch {
                     await MainActor.run {
                         self.aiResponse = ""
                         self.errorMessage = error.localizedDescription
+                        updatePercentage(0.0)
                         
                         // Set the checking indicator back to false if there's an error
                         self.isCheckingWithAI = false
