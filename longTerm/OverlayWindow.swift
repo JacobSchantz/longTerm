@@ -141,11 +141,10 @@ struct OverlayContentView: View {
                             .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
                             .cornerRadius(4)
                     }
-                    .padding(.leading, 20)
-                    // .background(Color.black)
+                    .padding(20)
+                    .background(Color.black)
                     Spacer()
                 }
-               .background(Color.black)
                 Spacer()
             }
             .background(
