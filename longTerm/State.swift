@@ -34,7 +34,7 @@ class AppState: ObservableObject {
     @Published var isCapturing: Bool = false
     @Published var isCheckingWithAI: Bool = false // Indicator for when AI check is in progress
     @Published var onTaskPercentage: Int = 0
-    @Published var isOverlayVisible: Bool = false
+    @Published var isOverlayVisible: Bool = true
     
     // Cancellables for Combine subscriptions
     private var cancellables = Set<AnyCancellable>()

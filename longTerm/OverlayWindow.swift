@@ -96,36 +96,31 @@ struct OverlayContentView: View {
     var body: some View {
         let notOnTask = state.onTaskPercentage == 0
         VStack(alignment: .center) {
-                        Spacer()
 
             HStack {
-                Spacer()
                 Text("On Task:")
                     .font(.system(size: 12, weight: .medium))
                 Text("\(state.onTaskPercentage)%")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
-                if state.isCheckingWithAI {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(0.5)
-                        .frame(width: 12, height: 12)
-                }
-            }
-            Spacer()
-            if let activity = state.selectedActivity {
-                Text(activity.title)
-                    .font(.system(size: 11))
-                    .lineLimit(1)
-            }
+                Spacer()
+
+            
+            }.padding()
                         Spacer()
         }
         .background(
             Rectangle()
-                .fill(notOnTask ? Color.red.opacity(0.1) : Color.black.opacity(0.1))
+                .fill(notOnTask ? Color.blue.opacity(0.9) : Color.green.opacity(0.1))
         )
         // Add subtle animation when changing colors
         .animation(.easeInOut(duration: 0.3), value: state.onTaskPercentage == 0)
+    }
+}
+
+struct OverlayWindowView_Previews: PreviewProvider {
+    static var previews: some View {
+        OverlayContentView().environmentObject(AppState())
     }
 }
 

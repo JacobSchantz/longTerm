@@ -16,17 +16,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Register for relaunch at login
         let launchAtLogin = true
         if launchAtLogin {
-            if let bundleID = Bundle.main.bundleIdentifier {
-                LSSharedFileListInsertItemURL(
-                    LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil).takeRetainedValue(),
-                    kLSSharedFileListItemLast.takeUnretainedValue(),
-                    nil,
-                    nil,
-                    NSURL.fileURL(withPath: Bundle.main.bundlePath) as CFURL,
-                    [kLSSharedFileListItemHidden: false] as CFDictionary,
-                    nil
-                )
-            }
+//            if let bundleID = Bundle.main.bundleIdentifier {
+//                LSSharedFileListInsertItemURL(
+//                    LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil).takeRetainedValue(),
+//                    kLSSharedFileListItemLast.takeUnretainedValue(),
+//                    nil,
+//                    nil,
+//                    NSURL.fileURL(withPath: Bundle.main.bundlePath) as CFURL,
+//                    [kLSSharedFileListItemHidden: false] as CFDictionary,
+//                    nil
+//                )
+//            }
         }
         
         // Prevent app from appearing in dock
