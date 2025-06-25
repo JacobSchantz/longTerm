@@ -48,6 +48,13 @@ struct MainView: App {
     @StateObject private var appState = AppState()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    init() {
+        // Schedule auto-start after a short delay to ensure everything is initialized
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            appState.startCapture()
+        }
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
