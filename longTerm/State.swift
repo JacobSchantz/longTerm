@@ -75,13 +75,14 @@ class AppState: ObservableObject {
 
         
         // Load overlay visibility preference
-        self.isOverlayVisible = UserDefaults.standard.bool(forKey: "isOverlayVisible")
+        // self.isOverlayVisible = UserDefaults.standard.bool(forKey: "isOverlayVisible")
         
         selectedActivityId = activities.first?.id
         updateMenuBar(onTaskPercentage: 0.0)
         
         // Setup app when launched
         setupAppOnLaunch()
+        updateOverlayWindow()
     }
     
     // Setup method to be called when app launches
@@ -96,7 +97,7 @@ class AppState: ObservableObject {
         setupNotificationObservers()
         
         // Setup overlay window
-        setupOverlayWindow()
+//        setupOverlayWindow()
     }
 
     func addActivity() {
@@ -132,12 +133,6 @@ class AppState: ObservableObject {
     
     // Overlay window controller
     private var overlayWindowController: OverlayWindowController?
-    
-    // Setup overlay window
-    func setupOverlayWindow() {
-        // Post notification to update overlay window
-        NotificationCenter.default.post(name: Notification.Name("OverlayToggled"), object: nil)
-    }
     
     // Method to update the overlay window based on state
     func updateOverlayWindow() {
@@ -178,7 +173,7 @@ class AppState: ObservableObject {
     // Called when another application is activated
     @objc func applicationActivated(_ notification: Notification) {
         // Ensure our overlay stays on top when switching apps
-        if isOverlayVisible && overlayWindowController != nil {
+        if overlayWindowController != nil {
             // Small delay to let the app switch complete
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.overlayWindowController?.showWindow(nil)

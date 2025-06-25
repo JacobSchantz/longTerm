@@ -57,7 +57,6 @@ class OverlayWindow: NSWindow {
 
 // SwiftUI wrapper for the overlay window
 struct OverlayWindowView: NSViewRepresentable {
-    @Binding var isVisible: Bool
     var contentView: AnyView
     var size: CGSize
     
@@ -76,12 +75,12 @@ struct OverlayWindowView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: NSView, context: Context) {
-        if isVisible && context.coordinator.windowController == nil {
+        if context.coordinator.windowController == nil {
             // Create and show the overlay window
             let hostingView = NSHostingView(rootView: contentView)
             context.coordinator.windowController = OverlayWindowController(contentView: hostingView, size: size)
             context.coordinator.windowController?.showWindow(nil)
-        } else if !isVisible && context.coordinator.windowController != nil {
+        } else if context.coordinator.windowController != nil {
             // Hide the overlay window
             context.coordinator.windowController?.close()
             context.coordinator.windowController = nil

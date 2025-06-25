@@ -207,7 +207,7 @@ struct ContentView: View {
         .frame(minWidth: 400, minHeight: 300)
         .background(
             // Invisible view to handle overlay window
-            OverlayWindowView(isVisible: $state.isOverlayVisible, contentView: AnyView(OverlayContentView().environmentObject(state)), size: CGSize(width: 180, height: 80))
+            OverlayWindowView(contentView: AnyView(OverlayContentView().environmentObject(state)), size: CGSize(width: 180, height: 80))
         )
         .alert("Off Task Alert", isPresented: $state.showZeroPercentAlert) {
             Button("OK") {
