@@ -231,43 +231,6 @@ class AppState: ObservableObject {
         
         let menu = NSMenu()
 
-        // First menu item shows status (checking or on-task percentage)
-        if isCheckingWithAI {
-            let checkingItem = NSMenuItem(title: "Checking with AI...", action: nil, keyEquivalent: "")
-            checkingItem.isEnabled = false
-            
-            // Add a progress indicator to the menu item
-            let progressIndicator = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 16, height: 16))
-            progressIndicator.style = .spinning
-            progressIndicator.isIndeterminate = true
-            progressIndicator.controlSize = .small
-            progressIndicator.isDisplayedWhenStopped = false
-            progressIndicator.startAnimation(nil)
-            
-            checkingItem.view = progressIndicator
-            menu.addItem(checkingItem)
-        } else {
-            let statusItem = NSMenuItem(title: "On task: \(onTaskPercentage)%", action: nil, keyEquivalent: "")
-            statusItem.isEnabled = false
-            menu.addItem(statusItem)
-        }
-        
-        // Add AI check action
-        let checkWithAIItem = NSMenuItem(title: "Check with AI", action: #selector(checkWithAI), keyEquivalent: "")
-        checkWithAIItem.target = self
-        menu.addItem(checkWithAIItem)
-        
-        // Add info button menu item
-        let infoItem = NSMenuItem(title: "Show Information", action: #selector(showInfo), keyEquivalent: "i")
-        infoItem.target = self
-        menu.addItem(infoItem)
-        
-        // Add overlay toggle menu item
-        let overlayTitle = isOverlayVisible ? "Hide Overlay" : "Show Overlay"
-        let overlayItem = NSMenuItem(title: overlayTitle, action: #selector(toggleOverlay), keyEquivalent: "o")
-        overlayItem.target = self
-        menu.addItem(overlayItem)
-
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem?.menu = menu

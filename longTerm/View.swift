@@ -216,13 +216,6 @@ struct ContentView: View {
             // Invisible view to handle overlay window
             OverlayWindowView(contentView: AnyView(OverlayContentView().environmentObject(state)), size: CGSize(width: 180, height: 80))
         )
-        .alert("Off Task Alert", isPresented: $state.showZeroPercentAlert) {
-            Button("OK") {
-                state.showZeroPercentAlert = false
-            }
-        } message: {
-            Text("You are completely off task! The AI detected 0% similarity to your selected activity.")
-        }
         .sheet(isPresented: $state.showInfoPopup) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Activity Information")
