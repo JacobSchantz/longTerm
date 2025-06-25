@@ -131,21 +131,21 @@ struct OverlayContentView: View {
         ZStack(alignment: .center){
             
             VStack(alignment: .center) {
-                HStack {
-                    Text("On Task:")
-                        .font(.system(size: 12, weight: .medium))
-                        .padding(5)
-                        .cornerRadius(4)
-                    Text("\(state.onTaskPercentage.rounded(.down))%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
-                        .padding(5)
-                        .cornerRadius(4)
+                HStack() {
+                    HStack(){
+                        Text("On Task:")
+                            .font(.system(size: 12, weight: .medium))
+                            .cornerRadius(4)
+                        Text("\(Int(state.onTaskPercentage))%")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(state.onTaskPercentage >= 70 ? .green : .red)
+                            .cornerRadius(4)
+                    }
+                    .padding(.leading, 20)
+                    // .background(Color.black)
                     Spacer()
                 }
-                // .background(Color.orange)
-                .padding(.vertical, 40)
-                .padding(.horizontal, 20)
+               .background(Color.black)
                 Spacer()
             }
             .background(
@@ -158,12 +158,11 @@ struct OverlayContentView: View {
                 Text(gibberish)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(notOnTask ? .white : .clear)
-                    .padding(80)
                     .cornerRadius(4)
                 Spacer()
             }
             .animation(.easeInOut(duration: 0.3), value: state.onTaskPercentage == 0)
-        }
+        }.padding(.top, 140)
     
     }
 }

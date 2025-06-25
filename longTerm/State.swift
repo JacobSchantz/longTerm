@@ -443,9 +443,9 @@ class AppState: ObservableObject {
             return
         }
 
-        if (detectedText.count <= 20) {
+        if (detectedText.count <= 20 || detectedText.contains("No text detected")) {
             self.errorMessage = ""
-                            self.aiResponse = "No text detected. Must be off task!"
+            self.aiResponse = "No text detected. Must be off task!"
                 updatePercentage(0.0)
                 return;
         }

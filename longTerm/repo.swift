@@ -46,7 +46,7 @@ class Repo {
             
             return recognizedText.isEmpty ? "No text detected" : recognizedText
         } catch {
-            return "Text recognition failed: \(error.localizedDescription)"
+            return "No text detected: \(error.localizedDescription)"
         }
     }
     
@@ -204,7 +204,7 @@ class Repo {
             "model": "llama3.2:latest", // Updated to use your 1B model
             "prompt": prompt,
             "stream": false,
-            "temperature": 0.01
+            "temperature": 0.1
         ]
         
         // Convert the request body to JSON data
