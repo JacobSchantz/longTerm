@@ -13,24 +13,38 @@ import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Register for relaunch at login
-        let launchAtLogin = true
-        if launchAtLogin {
-//            if let bundleID = Bundle.main.bundleIdentifier {
-//                LSSharedFileListInsertItemURL(
-//                    LSSharedFileListCreate(nil, kLSSharedFileListSessionLoginItems.takeUnretainedValue(), nil).takeRetainedValue(),
-//                    kLSSharedFileListItemLast.takeUnretainedValue(),
-//                    nil,
-//                    nil,
-//                    NSURL.fileURL(withPath: Bundle.main.bundlePath) as CFURL,
-//                    [kLSSharedFileListItemHidden: false] as CFDictionary,
-//                    nil
-//                )
-//            }
+        // Check if this is a duplicate instance at startup
+        let isRestart = checkForDuplicateInstance()
+        if isRestart {
+            // If this is a duplicate instance at system restart, terminate
+            NSApp.terminate(nil)
+            return
         }
         
         // Prevent app from appearing in dock
         NSApp.setActivationPolicy(.accessory)
+    }
+    
+    // Check if another instance of the app is already running
+    private func checkForDuplicateInstance() -> Bool {
+        // Get the current process ID
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        
+        // Get all running instances of this app
+        let runningApps = NSWorkspace.shared.runningApplications
+        let bundleID = Bundle.main.bundleIdentifier
+        
+        // Count instances of this app
+        let instances = runningApps.filter { app in
+            app.bundleIdentifier == bundleID && app.processIdentifier != currentPID
+        }
+        
+        // If there are other instances and this is a launch at login
+        // (we can detect this by checking launch arguments or time since boot)
+        let timeInterval = ProcessInfo.processInfo.systemUptime
+        let isSystemRestart = timeInterval < 300 // Less than 5 minutes since boot
+        
+        return instances.count > 0 && isSystemRestart
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
