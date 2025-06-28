@@ -5,6 +5,7 @@ import Vision
 import AppKit
 import Combine
 import CoreAudio
+import IOKit
 
 struct Activity: Identifiable, Codable, Hashable {
     var id: String
@@ -45,7 +46,8 @@ class AppState: ObservableObject {
     // Cancellables for Combine subscriptions
     private var cancellables = Set<AnyCancellable>()
     
-    private var timer: Timer?
+    private var askAiTimer: Timer?
+        private var updateTimer: Timer?
     private var statusItem: NSStatusItem?
     
     @Published var activities: [Activity] = []
@@ -318,6 +320,15 @@ class AppState: ObservableObject {
             isAudioMuted = true
             print("Audio muted. Previous volume: \(previousVolume)")
     }
+
+private func dimScreen() {
+    // Store current brightness (if supported by the tool)
+    
+    // Set brightness to 0 (requires 'brightness' tool installed)
+    let command = "brightness 0"
+    try? shellCommand(command)
+    
+}
     
     // Restore system audio when overlay is hidden
     private func restoreSystemAudio() {
@@ -359,8 +370,11 @@ class AppState: ObservableObject {
     
     func startCapture() {
         guard !isCapturing else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 7.0, repeats: true) { [weak self] _ in
+        askAiTimer = Timer.scheduledTimer(withTimeInterval: 12.0, repeats: true) { [weak self] _ in
             self?.captureAndRecognizeText()
+        }
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.updatePercentage(self?.onTaskPercentage ?? 0)
         }
         captureAndRecognizeText()
         isCapturing = true
@@ -369,8 +383,10 @@ class AppState: ObservableObject {
     
     func stopCapture() {
         guard isCapturing else { return }
-        timer?.invalidate()
-        timer = nil
+        askAiTimer?.invalidate()
+        updateTimer?.invalidate()
+        askAiTimer = nil
+        updateTimer = nil
         isCapturing = false
         statusMessage = "Not capturing"
         detectedText = "No text detected yet."
@@ -426,6 +442,7 @@ class AppState: ObservableObject {
         if percentage == 0 {
             // User is off task and overlay is visible - mute audio
             muteSystemAudio()
+            dimScreen()
         }
     }
     
